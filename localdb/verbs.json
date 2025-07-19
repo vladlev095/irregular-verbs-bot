@@ -1,0 +1,36 @@
+{
+    "Verbs": [
+        {
+        "Group 1": [
+            {
+                "V1": "lend",
+                "V2": "lent",
+                "V3": "lent",
+                "transl": "давать взаймы"
+            }, 
+            {
+                "V1": "build",
+                "V2": "built",
+                "V3": "built",
+                "transl": "строить"
+            }
+                ]
+        },
+        {
+        "Group 2": [
+            {
+                "V1": "cut",
+                "V2": "cut",
+                "V3": "cut",
+                "transl": "резать"
+            }, 
+            {
+                "V1": "put",
+                "V2": "put",
+                "V3": "put",
+                "transl": "класть"
+            }
+                ]
+        }
+            ]
+}
