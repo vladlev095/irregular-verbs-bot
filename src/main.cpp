@@ -5,6 +5,7 @@
 #include <cstdlib>
 #include <exception>
 #include <string>
+#include <map>
 #include <fstream>
 
 #include <tgbot/tgbot.h>
@@ -32,13 +33,14 @@ private:
     std::vector<TgBot::InlineKeyboardButton::Ptr> row0;
 };
 
-std::string groupName(std::string queryData, int &groupNumber) {
+std::string groupName(const std::string &queryData) {
     for(int i = 0; i <= 10; ++i) {
-        if(queryData == "Group" + std::to_string(i)) {
-            groupNumber = i;
-            return "Group" + std::to_string(i);
+        std::string groupName = "Group" + std::to_string(i);
+        if(queryData == groupName) {
+            return groupName;
         }
     }
+    return {};
 }
 
 int main() {
@@ -52,11 +54,11 @@ int main() {
         return 1;
     }
     json j = json::parse(f);
-    json groupOne = json::array();
-    groupOne = j["Group 1"]; //json to string then if the string has {} don't print them
-    json groupTwo = json::array();
-    groupTwo = j["Group 2"];
-    //the other way is probably to extract key value pairs
+    json Group1 = json::array();
+    Group1 = j["Group 1"]; 
+    json Group2 = json::array();
+    Group2 = j["Group 2"];
+    std::map<std::string, json> groups = { {"Group1", Group1}, {"Group2", Group2}};
 
     //menu
     std::vector<TgBot::BotCommand::Ptr> commands;
@@ -78,7 +80,7 @@ int main() {
     TgBot::InlineKeyboardMarkup::Ptr startKeyboard(new TgBot::InlineKeyboardMarkup);
     InlineKeyboard skb(startKeyboard);
     skb.addButton("Learn", "Learn");
-    skb.addButton("Test", "Test"); //implement spoiler 
+    skb.addButton("Test", "Test"); 
     skb.addRow();
     TgBot::InlineKeyboardMarkup::Ptr groupsKeyboard(new TgBot::InlineKeyboardMarkup);
     InlineKeyboard gkb(groupsKeyboard);
@@ -105,34 +107,22 @@ int main() {
         bot.getApi().sendMessage(message->chat->id, "This bot will help you learn and practice English irregular verbs. \
             Choose what you want to do and let's get started!", nullptr, nullptr, startKeyboard);
     });
-    bot.getEvents().onCallbackQuery([&bot, &groupsKeyboard](TgBot::CallbackQuery::Ptr query) {
-        if (StringTools::startsWith(query->data, "Learn")) {
+    bot.getEvents().onCommand("learn", [&bot, &groupsKeyboard](TgBot::Message::Ptr message) {
+        bot.getApi().sendMessage(message->chat->id, "It's easier to learn irregular verbs if you divide the ones that rhyme into groups. Choose a group of verbs:", nullptr, nullptr, groupsKeyboard);
+    });
+    bot.getEvents().onCallbackQuery([&bot, &groups, &groupsKeyboard](TgBot::CallbackQuery::Ptr query) {
+        std::string queryData = query->data;
+        if (StringTools::startsWith(queryData, "Learn")) {
             bot.getApi().sendMessage(query->message->chat->id, "It's easier to learn irregular verbs if you divide the ones that rhyme into groups. Choose a group of verbs:", nullptr, nullptr, groupsKeyboard);
         }
-    });
-    bot.getEvents().onCommand("learn", [&bot, &groupsKeyboard](TgBot::Message::Ptr message) {
-            bot.getApi().sendMessage(message->chat->id, "It's easier to learn irregular verbs if you divide the ones that rhyme into groups. Choose a group of verbs:", nullptr, nullptr, groupsKeyboard);
-    });
-    bot.getEvents().onCallbackQuery([&bot, &groupOne, &startKeyboard](TgBot::CallbackQuery::Ptr query) {
-        int groupNumber = 0;
-        if(StringTools::startsWith(query->data, groupName(query->data, groupNumber))) {
+        else if(StringTools::startsWith(queryData, groupName(queryData))) {
             bot.getApi().sendMessage(query->message->chat->id, "Here is a group of rhyming verbs to learn:");
-            for(int i = 0; i < groupOne.size(); i++) { //i'd prefer a cycle with next, back and exit buttons here
-                bot.getApi().sendMessage(query->message->chat->id, groupOne[i].dump(4), nullptr, nullptr);
+            for(int i = 0; i < groups.at(queryData).size(); i++) {
+                bot.getApi().sendMessage(query->message->chat->id, groups.at(queryData)[i].dump(4), nullptr, nullptr);
             }
-            bot.getApi().sendMessage(query->message->chat->id, "Go back to the list of groups or test your knowledge.", nullptr, nullptr, startKeyboard);
+            bot.getApi().sendMessage(query->message->chat->id, "Choose another group or use the menu to go back or test your knowledge.", nullptr, nullptr, groupsKeyboard);
         }
     });
-    // bot.getEvents().onCallbackQuery([&bot, &group, &naviKeyboard](TgBot::CallbackQuery::Ptr query) {
-    //     if(StringTools::startsWith(query->data, "Next")) {
-    //         bot.getApi().sendMessage(query->message->chat->id, group[0].dump(4), nullptr, nullptr, naviKeyboard);
-    //     }
-    // });
-    // bot.getEvents().onCallbackQuery([&bot, &groupsKeyboard](TgBot::CallbackQuery::Ptr query) {
-    //     if(StringTools::startsWith(query->data, "Back")) {
-    //         bot.getApi().sendMessage(query->message->chat->id, "It's easier to learn irregular verbs if you divide them in groups. Each group has a set of verbs that rhyme. Choose a group of verbs to start learning", nullptr, nullptr, groupsKeyboard);
-    //     }
-    // });
 
     //sigint + longpoll
     signal(SIGINT, [](int s) {
